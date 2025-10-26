@@ -1,33 +1,41 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
+// Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "Monster.h"
 #include "InfiniteRunner/InfiniteRunnerCharacter.h"
-
-#include "Components/SkeletalMeshComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 AMonster::AMonster()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	Collision = CreateDefaultSubobject<UCapsuleComponent>("CapsuleComponent");
+	Collision = CreateDefaultSubobject<UCapsuleComponent>("Collision");
 	RootComponent = Collision;
 
-	MeshComp = CreateDefaultSubobject<USkeletalMeshComponent>("SkeletalMeshComponent");
+	MeshComp = CreateDefaultSubobject<USkeletalMeshComponent>("MeshComp");
 	MeshComp->SetupAttachment(RootComponent);
-
 }
 
 void AMonster::BeginPlay()
 {
 	Super::BeginPlay();
-	
-	if (GetChasedPlayer())
+
+	AActor* FoundActor = UGameplayStatics::GetActorOfClass(GetWorld(), ChasedPlayerClass);
+	if (FoundActor)
 	{
-		bIsChasingPlayer = true;
-		GetWorld()->GetTimerManager().SetTimer(ChaseHandle, this, &AMonster::Disappear, 4.0f, false);
+		ChasedPlayer = Cast<AInfiniteRunnerCharacter>(FoundActor);
+		if (ChasedPlayer)
+		{
+			ChasedPlayer->OnPlayerCaught.AddDynamic(this, &AMonster::OnPlayerCaught);
+			ChasedPlayer->OnPlayerDead.AddDynamic(this, &AMonster::OnPlayerDead);
+			StartChase();
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Monster: Player not found to chase!"));
 	}
 }
 
@@ -35,54 +43,58 @@ void AMonster::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (bIsChasingPlayer)
+	if (bIsChasingPlayer && ChasedPlayer && !ChasedPlayer->GetIsDead())
 	{
-		
+		FVector Direction = ChasedPlayer->GetActorLocation() - GetActorLocation();
+		Direction.Z = 0;
+		Direction.Normalize();
+
+		FVector NewLocation = GetActorLocation() + Direction * ChaseSpeed * DeltaTime;
+		SetActorLocation(NewLocation);
+
+		FRotator LookAtRotation = Direction.Rotation();
+		SetActorRotation(LookAtRotation);
+
+		if (FVector::Dist(GetActorLocation(), ChasedPlayer->GetActorLocation()) < 100.f)
+		{
+			CatchPlayer();
+		}
 	}
 }
 
-bool AMonster::GetChasedPlayer()
+void AMonster::StartChase()
 {
-	AActor* FoundActor = UGameplayStatics::GetActorOfClass(GetWorld(), ChasedPlayerClass);
-
-	if (AInfiniteRunnerCharacter* FoundChasedPlayer = Cast<AInfiniteRunnerCharacter>(FoundActor))
-	{
-		ChasedPlayer = FoundChasedPlayer;
-		ChasedPlayer->OnPlayerCaught.AddDynamic(this, &AMonster::GetPlayerOnCaught);
-		ChasedPlayer->OnPlayerDead.AddDynamic(this, &AMonster::GetPlayerOnDead);
-		return true;
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("player to chase unfound!"));
-		return false;
-	}
-}
-
-void AMonster::ChasePlayer()
-{
-	//MoveComponent
+	bIsChasingPlayer = true;
+	GetWorld()->GetTimerManager().SetTimer(ChaseHandle, this, &AMonster::Disappear, LifeSpanAfterChase, false);
 }
 
 void AMonster::CatchPlayer()
 {
-
+	if (ChasedPlayer && !ChasedPlayer->GetIsDead())
+	{
+		ChasedPlayer->OnPlayerCaught.Broadcast();
+		Disappear();
+	}
 }
 
 void AMonster::Disappear()
 {
 	bIsChasingPlayer = false;
 	SetActorHiddenInGame(true);
+	SetActorEnableCollision(false);
+	SetActorTickEnabled(false);
 }
 
-void AMonster::GetPlayerOnCaught()
+void AMonster::OnPlayerCaught()
 {
-
+	UE_LOG(LogTemp, Warning, TEXT("Monster: Player has been caught!"));
+	Disappear();
 }
 
-void AMonster::GetPlayerOnDead()
+void AMonster::OnPlayerDead()
 {
-
+	UE_LOG(LogTemp, Warning, TEXT("Monster: Player is dead!"));
+	Disappear();
 }
 
 bool AMonster::GetIsChasingPlayer()

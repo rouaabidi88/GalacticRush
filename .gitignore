@@ -1,32 +1,28 @@
-# Prerequisites
-*.d
 
-# Compiled Object files
-*.slo
-*.lo
+.vs/
+.idea/
+*.sln
+*.vcxproj*
+*.user
+*.suo
+*.userprefs
+
+
+Binaries/
+Intermediate/
+Saved/
+DerivedDataCache/
+
+
+*.exe
+*.dll
+*.lib
+*.app
+*.out
 *.o
 *.obj
+*.pdb
 
-# Precompiled Headers
-*.gch
-*.pch
 
-# Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
-
-# Fortran module files
-*.mod
-*.smod
-
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
-
-# Executables
-*.exe
-*.out
-*.app
+.DS_Store
+Thumbs.db

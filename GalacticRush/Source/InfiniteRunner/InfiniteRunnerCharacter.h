@@ -5,7 +5,6 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "Obstacles/ObstacleBase.h"
-#include "Runtime/Core/Public/Delegates/Delegate.h"
 #include "InfiniteRunnerCharacter.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnPlayerCaught);
@@ -20,52 +19,32 @@ enum class EDirection : uint8
 	EBackward UMETA(DisplayName = "Backward")
 };
 
-/*
-* 
-*/
-UCLASS(config=Game)
+UCLASS(config = Game)
 class AInfiniteRunnerCharacter : public ACharacter
 {
 	GENERATED_BODY()
 
-
-	//////////////////////////////////////////////////////////////////////////
-    // AInfiniteRunnerCharacter
-
-
-	/** Camera boom positioning the camera behind the character */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
-	class USpringArmComponent* CameraBoom;
+	USpringArmComponent* CameraBoom;
 
-	/** Follow camera */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
-	class UCameraComponent* FollowCamera;
+	UCameraComponent* FollowCamera;
 
 public:
 	AInfiniteRunnerCharacter();
 
 	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaSeconds) override;
+	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Input)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Input)
 	float TurnRateGamepad;
 
 	UPROPERTY()
-		class APlayerController* PlayerController;
+	APlayerController* PlayerController;
 
 	UFUNCTION()
-		void SetUpPlayerController();
-
-protected:
-	// APawn interface
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-	// End of APawn interface
-
-	virtual void Tick(float DeltaSeconds) override;
-
-
-	//////////////////////////////////////////////////////////////////////////
-	// Player Movement
-
+	void SetUpPlayerController();
 
 	bool bIsRunning;
 	bool bIsJumping;
@@ -75,232 +54,96 @@ protected:
 	FTimerHandle JumpHandle;
 	FTimerHandle OverJumpHandle;
 	FTimerHandle RollHandle;
-	
+
 	EDirection MovementDirection;
 	bool bIsOnRightSide;
-
-	UPROPERTY()
-		FRotator DesiredTurnRotation;
-
-protected:
-	/** Called for forwards/backward input */
-	void MoveForward(float Value);
-
-	/** Called for side to side input */
-	void MoveRight(float Value);
-
-	/** Handler for when a touch input begins. */
-	void TouchStarted(ETouchIndex::Type FingerIndex, FVector Location);
-
-	/** Handler for when a touch input stops. */
-	void TouchStopped(ETouchIndex::Type FingerIndex, FVector Location);
-
-public:
-	/** Returns CameraBoom subobject **/
-	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
-	/** Returns FollowCamera subobject **/
-	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+	FRotator DesiredTurnRotation;
 
 	void PlayerRun();
-
 	void PlayerJump();
 	void HandleJump();
-
 	void JumpOver();
 	void HandleOverJump();
-
 	void Roll();
 	void HandleRoll();
-
 	void TurnRight();
 	void TurnLeft();
-
 	void ConfigureTurning();
-
 	void MoveToRightSide();
 	void MoveToLeftSide();
-
-public:
-	FTimerHandle SlipHandle;
-	FTimerHandle HitHardHandle;
-	FTimerHandle DieHandle;
-
-	UPROPERTY()
-		float Energy;
-
-	UPROPERTY()
-		bool bIsSlipping;
-
-	UPROPERTY()
-		bool bIsHitHard;
-
-	UPROPERTY()
-		bool bIsInjured;
-
-	UPROPERTY()
-		bool bIsRunningInjured;
-
-	UPROPERTY()
-		bool bIsDead;
-
-	UFUNCTION()
-		void IncreaseEnergy(int Value);
-
-	UFUNCTION()
-		void LowerEnergy(float Value);
-
-	UFUNCTION()
-		void Die();
-
-	UFUNCTION()
-		void HandleSlip();
-
-	UFUNCTION()
-		void HandleHitHard();
-
-	UFUNCTION()
-		void HandleDie();
-
-
-	//////////////////////////////////////////////////////////////////////////
-	// Player Chasing
-
-
-	UPROPERTY(BlueprintReadWrite)
-		bool bIsCaught;
-
-	UFUNCTION()
-		void OnCaught();
-
-
-	//////////////////////////////////////////////////////////////////////////
-	// Player Obstacles
-
-	FTimerHandle InjuryHandle;
-
-	UFUNCTION()
-		void HitObstacle(EObstacleType ObstacleType);
-
+	void IncreaseEnergy(int Value);
+	void LowerEnergy(float Value);
+	void Die();
+	void HandleSlip();
+	void HandleHitHard();
+	void HandleDie();
+	void OnCaught();
+	void HitObstacle(EObstacleType ObstacleType);
 	void HitWaterLake();
 	void HitFireBranch();
 	void HitRock();
-
 	void HandleInjury();
+	void HealInjury();
+	void CollectCoins(int Value);
+	AMatchScoreCamera* FindMatchScoreCamera();
+	void OnDefeated();
+	void HandleDefeat();
 
+	UPROPERTY()
+	float Energy;
+	UPROPERTY()
+	bool bIsSlipping;
+	UPROPERTY()
+	bool bIsHitHard;
+	UPROPERTY()
+	bool bIsInjured;
+	UPROPERTY()
+	bool bIsRunningInjured;
+	UPROPERTY()
+	bool bIsDead;
+	UPROPERTY(BlueprintReadWrite)
+	bool bIsCaught;
 
-	//////////////////////////////////////////////////////////////////////////
-	// Player PowerUps
-
+	FTimerHandle SlipHandle;
+	FTimerHandle HitHardHandle;
+	FTimerHandle DieHandle;
+	FTimerHandle InjuryHandle;
+	FTimerHandle DefeatHandle;
 
 	TArray<class APowerUpBase*> Powerups;
 
-	void HealInjury();
-
-
-	//////////////////////////////////////////////////////////////////////////
-	// Player Score
-
-
-	FTimerHandle DefeatHandle;
-
 	UPROPERTY()
-		bool bIsDefeated;
-
+	bool bIsDefeated;
 	float PlayerScore;
 	int PlayerCoinCount;
-
 	UPROPERTY(BlueprintReadWrite)
-		class AMatchScoreCamera* MatchScoreCameraObjectReference;
-
+	class AMatchScoreCamera* MatchScoreCameraObjectReference;
 	TSubclassOf<class AMatchScoreCamera> MatchScoreCameraClass;
-
-	UFUNCTION()
-		void CollectCoins(int Value);
-
-	UFUNCTION(BlueprintCallable)
-		class AMatchScoreCamera* FindMatchScoreCamera();
-
-	void OnDefeated();
-
-	UFUNCTION(BlueprintImplementableEvent)
-		void OnDefeatedEvent();
-
-	UFUNCTION()
-		void HandleDefeat();
-
-
-	//////////////////////////////////////////////////////////////////////////
-	// Player UMG
-
-
 	UPROPERTY(EditAnywhere)
-		class UMainWidget* MainWidget;
-	
+	class UMainWidget* MainWidget;
 
-	//////////////////////////////////////////////////////////////////////////
-	// Player Getters
-
-
-	// Movement
-
-	UFUNCTION(BlueprintCallable)
-		bool GetIsRunning();
-
-	UFUNCTION(BlueprintCallable)
-		void SetIsRunning(bool IsRunning);
-
-	UFUNCTION(BlueprintCallable)
-		bool GetIsJumping();
-
-	UFUNCTION(BlueprintCallable)
-		bool GetIsOverJumping();
-
-	UFUNCTION(BlueprintCallable)
-		bool GetIsRolling();
-
-	UFUNCTION(BlueprintCallable)
-		bool GetIsCaught();
-
-	UFUNCTION(BlueprintCallable)
-		bool GetIsDead();
-
-	UFUNCTION(BlueprintCallable)
-		bool GetIsInjured();
-
-	UFUNCTION(BlueprintCallable)
-		bool GetIsRunningInjured();
-
-	UFUNCTION(BlueprintCallable)
-		bool GetIsHitHard();
-
-	UFUNCTION(BlueprintCallable)
-		bool GetIsSlipping();
-
-	UFUNCTION(BlueprintCallable)
-		bool GetIsDefeated();
-
-	UFUNCTION(BlueprintCallable)
-		void SetIsDefeated(bool IsDefeated);
-
-	UFUNCTION(BlueprintCallable)
-		class UMainWidget* GetMainWidget();
-
-	UFUNCTION(BlueprintCallable)
-		void SetMainWidget(class UMainWidget* MainWidgetObjectReference);
-
-	// Player Stats
-
-	UFUNCTION(BlueprintCallable)
-		float GetPlayerScore();
-
-	UFUNCTION(BlueprintCallable)
-		int GetCoinCount();
-		
-	UFUNCTION(BlueprintCallable)
-		float GetEnergy();
-
-	// Delegates
 	FOnPlayerCaught OnPlayerCaught;
 	FOnPlayerDead OnPlayerDead;
-};
 
+	FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
+	FORCEINLINE UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+
+	UFUNCTION(BlueprintCallable) bool GetIsRunning() { return bIsRunning; }
+	UFUNCTION(BlueprintCallable) void SetIsRunning(bool IsRunning) { bIsRunning = IsRunning; }
+	UFUNCTION(BlueprintCallable) bool GetIsJumping() { return bIsJumping; }
+	UFUNCTION(BlueprintCallable) bool GetIsOverJumping() { return bIsOverJumping; }
+	UFUNCTION(BlueprintCallable) bool GetIsRolling() { return bIsRolling; }
+	UFUNCTION(BlueprintCallable) bool GetIsCaught() { return bIsCaught; }
+	UFUNCTION(BlueprintCallable) bool GetIsDead() { return bIsDead; }
+	UFUNCTION(BlueprintCallable) bool GetIsInjured() { return bIsInjured; }
+	UFUNCTION(BlueprintCallable) bool GetIsRunningInjured() { return bIsRunningInjured; }
+	UFUNCTION(BlueprintCallable) bool GetIsHitHard() { return bIsHitHard; }
+	UFUNCTION(BlueprintCallable) bool GetIsSlipping() { return bIsSlipping; }
+	UFUNCTION(BlueprintCallable) bool GetIsDefeated() { return bIsDefeated; }
+	UFUNCTION(BlueprintCallable) void SetIsDefeated(bool IsDefeated) { bIsDefeated = IsDefeated; }
+	UFUNCTION(BlueprintCallable) UMainWidget* GetMainWidget() { return MainWidget; }
+	UFUNCTION(BlueprintCallable) void SetMainWidget(UMainWidget* MainWidgetObjectReference) { MainWidget = MainWidgetObjectReference; }
+	UFUNCTION(BlueprintCallable) float GetPlayerScore() { return PlayerScore; }
+	UFUNCTION(BlueprintCallable) int GetCoinCount() { return PlayerCoinCount; }
+	UFUNCTION(BlueprintCallable) float GetEnergy() { return Energy; }
+};

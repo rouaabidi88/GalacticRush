@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// Copyright Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -6,55 +6,56 @@
 #include "GameFramework/Actor.h"
 #include "Monster.generated.h"
 
+class AInfiniteRunnerCharacter;
+
 UCLASS()
 class INFINITERUNNER_API AMonster : public AActor
 {
 	GENERATED_BODY()
-	
-public:	
-	// Sets default values for this actor's properties
+
+public:
 	AMonster();
 
 protected:
-	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-public:	
-	// Called every frame
+public:
 	virtual void Tick(float DeltaTime) override;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	class UCapsuleComponent* Collision;
 
-public:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	class USkeletalMeshComponent* MeshComp;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Monster")
+	TSubclassOf<AInfiniteRunnerCharacter> ChasedPlayerClass;
+
+	UPROPERTY(BlueprintReadOnly)
+	AInfiniteRunnerCharacter* ChasedPlayer;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Monster")
+	float ChaseSpeed = 800.f;
+
+	UPROPERTY(BlueprintReadOnly)
+	bool bIsChasingPlayer = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Monster")
+	float LifeSpanAfterChase = 4.0f;
 
 	FTimerHandle ChaseHandle;
 
-	bool bIsChasingPlayer;
+	UFUNCTION(BlueprintCallable)
+	void StartChase();
 
-
-	UPROPERTY(EditAnywhere)
-		class UCapsuleComponent* Collision;
-
-	UPROPERTY(EditAnywhere)
-		class USkeletalMeshComponent* MeshComp;
-
-	TSubclassOf<class AInfiniteRunnerCharacter> ChasedPlayerClass;
-
-	UPROPERTY(EditAnywhere)
-		class AInfiniteRunnerCharacter* ChasedPlayer;
-public:
-
-	bool GetChasedPlayer();
-
-	void ChasePlayer();
-	void CatchPlayer();
+	UFUNCTION(BlueprintCallable)
 	void Disappear();
-	
-	UFUNCTION(BlueprintCallable)
-		void GetPlayerOnCaught();
 
-	UFUNCTION(BlueprintCallable)
-		void GetPlayerOnDead();
+	void CatchPlayer();
 
-	UFUNCTION(BlueprintCallable)
-		bool GetIsChasingPlayer();
+	UFUNCTION()
+	void OnPlayerCaught();
+
+	UFUNCTION()
+	void OnPlayerDead();
 };
